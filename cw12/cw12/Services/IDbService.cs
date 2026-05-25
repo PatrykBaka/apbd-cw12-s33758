@@ -6,5 +6,6 @@ public interface IDbService
 {
     
     Task<List<GetPatiensOptional>> GetPatientsListAsync(string? search);
-    
+    Task AddBedToPatientAsync(string pesel, AddAssigmentBedRequest dto);
+
 }

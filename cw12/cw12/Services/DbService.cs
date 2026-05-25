@@ -76,5 +76,50 @@ public class DbService : IDbService
         
         return result;
     }
+
+    public async Task AddBedToPatientAsync(string pesel, AddAssigmentBedRequest dto)
+    {
+        
+        var anyPatient = await _dbContext.Patients.AnyAsync(p => p.Pesel == pesel);
+        if (!anyPatient)
+        {
+            throw new NotFoundException("Pesel not found");
+        }
+        
+
+        var transaction = await _dbContext.Database.BeginTransactionAsync();
+        try
+        {
+            DateTime farFuture = new DateTime(2100, 12, 31);
+            
+            var availableBed = await _dbContext.Beds.Where(b => b.Room.Ward.Name == dto.Ward && b.BedType.Name == dto.BedType)
+                .Where(b => !b.BedAssignments.Any(ba => ba.From < (dto.To ?? farFuture) && (ba.To ?? farFuture) > dto.From))
+                .FirstOrDefaultAsync();
+
+            if (availableBed == null)
+            {
+                throw new NotFoundException("Bed not found");
+            }
+
+            var newAssigment = new BedAssignment
+            {
+                PatientPesel =  pesel,
+                BedId =  availableBed.Id,
+                From = dto.From,
+                To = dto.To,
+            };
+            
+            _dbContext.BedAssignments.Add(newAssigment);
+            await _dbContext.SaveChangesAsync();
+
+            await transaction.CommitAsync();
+        }
+        catch (Exception e)
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+
+}
     
 }

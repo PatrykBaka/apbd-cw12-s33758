@@ -1,4 +1,6 @@
-﻿using cw12.Services;
+﻿using cw12.DTOs;
+using cw12.Exceptions;
+using cw12.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace cw12.Controllers;
@@ -20,6 +22,22 @@ public class PatientsController : ControllerBase
     {
         var result = await _dbService.GetPatientsListAsync(search);
         return Ok(result);
+    }
+
+    [Route("api/patients/{pesel}/bedassignments")]
+    [HttpPost]
+    public async Task<IActionResult> AddBedToPatientAsync(string pesel, AddAssigmentBedRequest dto)
+    {
+        try
+        {
+            await _dbService.AddBedToPatientAsync(pesel, dto);
+
+            return Created();
+        }
+        catch (NotFoundException e)
+        {
+            return NotFound(e.Message);
+        }
     }
     
 }
